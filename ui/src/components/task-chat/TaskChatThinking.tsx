@@ -64,7 +64,7 @@ export function TaskChatThinking({
   }
 
   return (
-    <div className="flex min-w-0 max-w-full flex-col overflow-hidden text-xs font-normal" data-testid="task-chat-thinking">
+    <div className="flex min-w-0 max-w-full flex-col text-xs font-normal" data-testid="task-chat-thinking">
       <button
         type="button"
         aria-expanded={open}
@@ -80,7 +80,7 @@ export function TaskChatThinking({
         ) : null}
         {!open ? (
           <span
-            className="task-chat-collapsed-line-fade min-w-0 flex-1"
+            className="min-w-0 flex-1 whitespace-normal break-words"
             data-testid="task-chat-thinking-preview"
           >
             {preview}

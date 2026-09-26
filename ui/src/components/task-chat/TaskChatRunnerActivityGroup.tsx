@@ -130,10 +130,10 @@ function ActivityContent({
       >
         <Icon className="size-3.5" aria-hidden="true" />
       </span>
-      <span className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap">
+      <span className="flex min-w-0 flex-1 items-center gap-2">
         <span
           className={cn(
-            "max-w-full shrink-0 truncate text-xs",
+            "min-w-0 whitespace-normal break-words text-xs",
             row.running && "text-foreground",
           )}
         >
@@ -143,7 +143,7 @@ function ActivityContent({
           <span
             title={row.target}
             className={cn(
-              "truncate text-xs text-muted-foreground",
+              "min-w-0 whitespace-normal break-words text-xs text-muted-foreground",
               row.mono && "font-mono",
             )}
           >
@@ -173,7 +173,7 @@ function RollingActivity({
   else if (frame.current !== item) setFrame({ ...frame, current: item });
   return (
     <span
-      className="relative flex h-8 min-w-0 flex-1 items-center overflow-hidden"
+      className="relative flex min-h-8 min-w-0 flex-1 items-center"
       aria-live="polite"
       aria-atomic="true"
       data-testid="task-chat-activity-viewport"
@@ -275,7 +275,7 @@ function ExpandedActivity({
       {expandable ? (
         <button
           type="button"
-          className="flex h-8 w-full min-w-0 items-center gap-2 rounded-sm text-left text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-h-8 w-full min-w-0 items-center gap-2 rounded-sm text-left text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           onClick={() => setOpen(!open)}
           aria-expanded={open}
           aria-controls={open ? detailId : undefined}
@@ -287,7 +287,7 @@ function ExpandedActivity({
           />
         </button>
       ) : (
-        <div className="flex h-8 w-full min-w-0 items-center gap-2 text-muted-foreground">
+        <div className="flex min-h-8 w-full min-w-0 items-center gap-2 text-muted-foreground">
           {content}
         </div>
       )}
@@ -360,7 +360,7 @@ export function TaskChatRunnerActivityGroup({
                 <span className="flex size-5 shrink-0 items-center justify-center">
                   <SummaryIcon className="size-3.5" aria-hidden="true" />
                 </span>
-                <span className="truncate" title={summary.fullLabel}>
+                <span className="min-w-0 whitespace-normal break-words" title={summary.fullLabel}>
                   {summary.label}
                 </span>
               </span>

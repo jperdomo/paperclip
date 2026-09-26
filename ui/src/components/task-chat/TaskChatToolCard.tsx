@@ -42,7 +42,7 @@ export function TaskChatToolCard({ item }: { item: TaskChatToolItem }) {
         onClick={expandable ? () => setShowDetail((v) => !v) : undefined}
         aria-expanded={expandable ? showDetail : undefined}
         className={cn(
-          "group/tool -mx-1.5 flex min-h-6 w-full min-w-0 max-w-full items-center gap-2 overflow-hidden rounded-sm px-1.5 py-1 text-left leading-none text-muted-foreground",
+          "group/tool -mx-1.5 flex min-h-6 w-full min-w-0 max-w-full items-center gap-2 rounded-sm px-1.5 py-1 text-left leading-none text-muted-foreground",
           expandable
             ? "cursor-pointer transition-colors hover:bg-muted/60 hover:text-foreground"
             : "cursor-default",
@@ -55,10 +55,10 @@ export function TaskChatToolCard({ item }: { item: TaskChatToolItem }) {
             data-testid="task-chat-tool-icon"
           />
         </span>
-        <span className="flex min-w-0 flex-1 items-baseline gap-2 overflow-hidden">
+        <span className="flex min-w-0 flex-1 items-baseline gap-2">
           <span className="shrink-0 font-medium leading-4">{item.name}</span>
           {item.target ? (
-            <span className="task-chat-collapsed-line-fade min-w-0 flex-1 font-mono text-(length:--text-micro) leading-4">
+            <span className="min-w-0 flex-1 whitespace-normal break-words font-mono text-(length:--text-micro) leading-4">
               {item.target}
             </span>
           ) : null}
