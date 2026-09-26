@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - gamma-hermes-gateway-fix
+      - gamma-ui-text-fix
     tags:
       - "gamma/*"
   workflow_dispatch:
