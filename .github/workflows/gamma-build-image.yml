@@ -1,0 +1,52 @@
+name: gamma-build-image
+
+# Build the Gamma Origin vendored Paperclip image from this fork's
+# gamma-hermes-gateway-fix branch and publish to the fork's GHCR namespace.
+# Uses GITHUB_TOKEN, which is auto-scoped to write packages on this repo, so no
+# manual PAT scope grant is needed.
+
+on:
+  push:
+    branches:
+      - gamma-hermes-gateway-fix
+    tags:
+      - "gamma/*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute image refs
+        id: meta
+        run: |
+          echo "sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "ref=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/jperdomo/paperclip-gamma:latest
+            ghcr.io/jperdomo/paperclip-gamma:${{ steps.meta.outputs.sha }}
+          labels: |
+            org.gamma.source=branch-${{ steps.meta.outputs.ref }}
