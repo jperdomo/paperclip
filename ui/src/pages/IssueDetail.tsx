@@ -6867,7 +6867,7 @@ export function TaskDetailSurface({ conversation, tasksTab }: { tasksTab?: TaskS
                   location.search,
                 )
               }
-              className="hover:text-foreground transition-colors truncate max-w-(--sz-200px)"
+              className="hover:text-foreground transition-colors min-w-0 whitespace-normal break-words"
               title={ancestor.title}
             >
               {ancestor.title}
@@ -6875,7 +6875,7 @@ export function TaskDetailSurface({ conversation, tasksTab }: { tasksTab?: TaskS
           </span>
         ))}
         <ChevronRight className="h-3 w-3 shrink-0" />
-        <span className="text-foreground/60 truncate max-w-(--sz-200px)">
+        <span className="text-foreground/60 min-w-0 whitespace-normal break-words">
           {issue.title}
         </span>
       </nav>
