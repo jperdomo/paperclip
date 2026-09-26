@@ -19,6 +19,13 @@ import { persistActivity } from "./activity-log.js";
 import { historicalAdapterType, isConversationAdapter } from "./conversation-continuation.js";
 import { queuedCommentIdsFromWakePayload } from "./issue-queued-comment-queue.js";
 
+/** Remote API adapters (hermes_gateway) execute off this control plane and never
+ * carry a local process identity. The run's terminal row plus settled recovery action
+ * are the termination proof; a fresh explicit user turn must not demand a local pid. */
+function isRemoteExplicitContinuationAdapter(adapterType: string): boolean {
+  return adapterType === "hermes_gateway";
+}
+
 type Run = typeof heartbeatRuns.$inferSelect;
 const terminal = ["failed", "interrupted", "timed_out", "cancelled"];
 
@@ -231,7 +238,8 @@ export async function admitExplicitNativeContinuation(input: {
       }))) return null;
     } else {
       if (leases.some(lease => !lease.releasedAt || lease.cleanupStatus === "failed")) return blocked("local_cleanup", "Waiting for the previous environment to finish cleanup. Your message will start automatically.");
-      if (!unusedAdmission && !cancelledStartup) {
+      if (!unusedAdmission && !cancelledStartup &&
+          !isRemoteExplicitContinuationAdapter(agent.adapterType)) {
         // A missing process identity is not evidence that a provider exited.
         if (!run.processPid && !run.processGroupId &&
             !await hasNativeLocalProcessStop(db, companyId, run.id) &&
