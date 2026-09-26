@@ -306,7 +306,7 @@ export function TaskChatProtocolActivityRow({ item }: { item: TaskChatProtocolIt
         <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden data-testid="task-chat-protocol-activity-icon" />
       </span>
       <span className={cn("shrink-0 font-medium", active && "shimmer-text shimmer-text-muted")}>{label}{active ? "…" : ""}</span>
-      {presentation.detail ? <span className="task-chat-collapsed-line-fade min-w-0 flex-1 font-mono text-(length:--text-micro)">{presentation.detail}</span> : null}
+      {presentation.detail ? <span className="min-w-0 flex-1 whitespace-normal break-words font-mono text-(length:--text-micro)">{presentation.detail}</span> : null}
       <span className="ml-auto flex shrink-0 items-center gap-2">
         {expandable ? (
           <ChevronRight
