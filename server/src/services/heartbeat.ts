@@ -17310,18 +17310,55 @@ export function heartbeatService(
     }
 
     const claimedAt = new Date();
-    const responsibleUserId = await resolveResponsibleUserIdForRun({
-      run,
-      contextSnapshot: context,
-      issueContext: issueId
-        ? await getIssueExecutionContext(run.companyId, issueId)
-        : null,
-      routineEnvContext: {
-        routineId: null,
-        env: null,
-        responsibleUserId: null,
-      },
-    });
+    let responsibleUserId: string | null = null;
+    try {
+      responsibleUserId = await resolveResponsibleUserIdForRun({
+        run,
+        contextSnapshot: context,
+        issueContext: issueId
+          ? await getIssueExecutionContext(run.companyId, issueId)
+          : null,
+        routineEnvContext: {
+          routineId: null,
+          env: null,
+          responsibleUserId: null,
+        },
+      });
+    } catch (err) {
+      // Queued-comment interrupts derive operator authority from a coalesced
+      // wakeup receipt (explicitOperatorRunIdentity). A wake promoted from a
+      // deferred/recovery state can 403 forever because no such receipt
+      // exists. Cancel the run and its wake explicitly instead of letting the
+      // authority failure wedge the queue, retry forever, or kill the claim
+      // pass. A fresh user re-send claims cleanly.
+      if (err instanceof HttpError && err.status === 403) {
+        const authorityError = `unclaimable ${run.invocationSource} run; operator authority unavailable`;
+        try {
+          await db.update(heartbeatRuns).set({
+            status: "cancelled",
+            error: authorityError,
+            finishedAt: new Date(),
+            updatedAt: new Date(),
+          }).where(and(eq(heartbeatRuns.id, run.id), eq(heartbeatRuns.companyId, run.companyId)));
+          if (run.wakeupRequestId) {
+            await db.update(agentWakeupRequests).set({
+              status: "cancelled",
+              error: authorityError,
+              finishedAt: new Date(),
+              updatedAt: new Date(),
+            }).where(and(eq(agentWakeupRequests.id, run.wakeupRequestId), eq(agentWakeupRequests.companyId, run.companyId)));
+          }
+        } catch (cleanupErr) {
+          logger.error({ err: cleanupErr, runId: run.id }, "claimQueuedRun: authority cleanup failed");
+        }
+        logger.warn(
+          { err, runId: run.id, issueId },
+          "claimQueuedRun: cancelled run with unavailable interrupt authority",
+        );
+        return null;
+      }
+      throw err;
+    }
     // All ordinary and comment claims use the same company-scoped issue
     // lock. A batch may claim several runs before executeRun tracks any owner.
     async function lockIssueExecutionClaim(tx: Db) {
@@ -19908,8 +19945,18 @@ export function heartbeatService(
       const claimedRuns: Array<typeof heartbeatRuns.$inferSelect> = [];
       for (const queuedRun of prioritizedRuns) {
         if (claimedRuns.length >= availableSlots) break;
-        const claimed = await claimQueuedRun(queuedRun, companyAgents);
-        if (claimed) claimedRuns.push(claimed);
+        try {
+          const claimed = await claimQueuedRun(queuedRun, companyAgents);
+          if (claimed) claimedRuns.push(claimed);
+        } catch (err) {
+          // A single unclaimable run (e.g. a queued-comment interrupt whose
+          // coalesced receipt is missing after a recovery promotion) must never
+          // abort the claim pass and take the server down at startup.
+          logger.error(
+            { err, runId: queuedRun.id },
+            "claimQueuedRun failed; skipping run",
+          );
+        }
       }
       if (claimedRuns.length === 0) return [];
 
