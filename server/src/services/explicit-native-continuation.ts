@@ -14,6 +14,7 @@ import {
 import { executionBlockerPredicate, getExecutionBlocker } from "./execution-blocker.js";
 import { buildExecutionContinuation } from "./execution-continuation.js";
 import { adapterExecutionControls } from "./adapter-execution-control.js";
+import { requiresExecutionReconciliation } from "@paperclipai/shared";
 import { persistActivity } from "./activity-log.js";
 
 import { historicalAdapterType, isConversationAdapter } from "./conversation-continuation.js";
@@ -165,7 +166,7 @@ export async function admitExplicitNativeContinuation(input: {
       run.errorCode === "execution_reconciliation_required" &&
       !run.processPid && !run.processGroupId && !run.nativeSessionId;
     const legacyUserTurn = run.runtimeMode === "legacy" &&
-      action.cause === "legacy_execution_requires_reconciliation" &&
+      requiresExecutionReconciliation(action.cause) &&
       isConversationAdapter(agent.adapterType);
     if ((queuedInterrupt || queuedRequest) && !legacyUserTurn && !unusedAdmission &&
         !(queuedInterrupt && response?.source.requiresFreshSession && run.runtimeMode === "native")) return null;
