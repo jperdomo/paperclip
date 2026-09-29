@@ -128,7 +128,12 @@ async function createEmbeddedPostgresTestInstance(tempDirPrefix: string) {
     password: "paperclip",
     port,
     persistent: true,
-    initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
+    initdbFlags: [
+      "--encoding=UTF8",
+      "--locale=C",
+      "--lc-messages=C",
+      `-c unix_socket_directories=${os.tmpdir()}`,
+    ],
     onLog: (message) => logBuffer.append(message),
     onError: (message) => logBuffer.append(message),
   });
