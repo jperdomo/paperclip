@@ -180,6 +180,27 @@ describeEmbeddedPostgres("issue blocker attention", () => {
     });
   });
 
+  it("reports a blocked issue with no blocker edges as covered without a terminal blocker", async () => {
+    const { companyId } = await createCompany("PBE");
+    const issueId = await insertIssue({
+      companyId,
+      identifier: "PBE-1",
+      title: "Blocked with nothing blocking it",
+      status: "blocked",
+    });
+    const blocked = (await svc.list(companyId, { status: "blocked" })).find(
+      (issue) => issue.id === issueId,
+    );
+    expect(blocked?.blockerAttention).toMatchObject({
+      state: "covered",
+      reason: null,
+      terminalBlockerIssueId: null,
+      unresolvedBlockerCount: 0,
+      coveredBlockerCount: 0,
+    });
+    expect(blocked?.blockerAttention?.terminalBlockerIssueId).not.toBe(issueId);
+  });
+
   it("classifies an assigned backlog blocker leaf without a waiting path as attention-needed", async () => {
     const { companyId, agentId } = await createCompany("PBB");
     const parentId = await insertIssue({ companyId, identifier: "PBB-1", title: "Parent", status: "blocked" });

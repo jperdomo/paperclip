@@ -244,6 +244,11 @@ export type IssuePostCommitAction = {
   runId: string;
   issueId: string;
   issueStatus: string;
+} |
+{
+  type: "promote_deferred_wakes";
+  issueId: string;
+  companyId: string;
 };
 
 /** Execute side effects that must never run before the issue transaction commits. */
@@ -252,10 +257,38 @@ export async function executeIssuePostCommitActions(
   actions: readonly IssuePostCommitAction[],
 ): Promise<void> {
   if (actions.length === 0) return;
-  const { heartbeatService } = await import("./heartbeat.js");
-  const heartbeat = heartbeatService(db);
-  const cancelledRunIds = new Set<string>();
+    const cancelledRunIds = new Set<string>();
   for (const action of actions) {
+    if (action.type === "promote_deferred_wakes") {
+      try {
+        await db
+          .update(agentWakeupRequests)
+          .set({ status: "queued" })
+          .where(
+            and(
+              eq(agentWakeupRequests.companyId, action.companyId),
+              eq(agentWakeupRequests.status, "deferred_issue_execution"),
+              wakeRequestTargetsIssue(action.issueId),
+            ),
+          );
+      } catch (err) {
+        // The issue transition is already committed; if this promotion
+        // fails, startup and periodic recovery sweeps can retry it. Do not
+        // report it as though the issue update rolled back.
+
+        logger.warn(
+          { err, issueId: action.issueId },
+          "deferred wake promotion deferred to recovery sweep",
+        );
+      }
+      continue;
+    }
+    // Lazy-load only when a cancel action actually needs it: the heartbeat
+    // module pulls in plugin-sdk and the environment runtime, which are heavy
+    // and unnecessary for lighter post-commit actions like wake promotion.
+
+    const { heartbeatService } = await import("./heartbeat.js");
+    const heartbeat = heartbeatService(db);
     if (cancelledRunIds.has(action.runId)) continue;
     cancelledRunIds.add(action.runId);
     try {
@@ -10929,6 +10962,23 @@ export function issueService(db: Db) {
           await issueThreadInteractionService(tx).expireConnectionIntentsForOwnershipChange(updated);
         }
         if (existing.status !== updated.status) {
+          if (
+            existing.status === "blocked" &&
+            updated.status !== "blocked" &&
+            updated.status !== "done" &&
+            updated.status !== "cancelled"
+          ) {
+            // Leaving `blocked` means the issue can run again, but nothing
+            // releases a run (there is none), so deferred wakeups parked by
+            // the execution hold would sit until a run-release ever happens.
+            // Promote them (queued) so the ordinary claim pass builds a run
+            // for any pending interrupt/message immediately..
+            queuedPostCommitActions.push({
+              type: "promote_deferred_wakes",
+              issueId: updated.id,
+              companyId: updated.companyId,
+            });
+          }
           if (
             (existing.status === "done" || existing.status === "cancelled") &&
             updated.status !== "done" &&
