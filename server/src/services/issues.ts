@@ -4297,12 +4297,18 @@ async function listIssueBlockerAttentionMap(
       );
     });
     if (topLevelEdges.length === 0) {
+      // A `blocked` issue with no blocker edges is not actually blocked by
+      // anything in the dependency graph. Reporting a self-referential
+      // terminal blocker (this issue blocks itself) generates an
+      // unresolvable "needs attention" entry that can never clear, leaving the
+      // issue visually stuck as blocked forever. There is no upstream action
+      // to take, so report covered with no terminal blocker.
       attentionMap.set(
         root.id,
         createIssueBlockerAttention({
-          state: "needs_attention",
-          reason: "attention_required",
-          terminalBlockerIssueId: root.id,
+          state: "covered",
+          reason: null,
+          terminalBlockerIssueId: null,
         }),
       );
       continue;
